@@ -1,3 +1,4 @@
+
 spring:
   application:
     name: enterprise_system
@@ -20,3 +21,15 @@ server:
   port: 8080
   error:
     include-message: always
+
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration: 86400000
+
+  bootstrap-admin:
+    name: ${BOOTSTRAP_ADMIN_NAME:}
+    email: ${BOOTSTRAP_ADMIN_EMAIL:}
+    password: ${BOOTSTRAP_ADMIN_PASSWORD:}
+
