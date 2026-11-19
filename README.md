@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # EOMS database and API handoff
 
 ## Contents
@@ -38,3 +39,7 @@ Role restrictions reflected in the collection:
 
 The exact site/unit request DTO fields should be checked against the current
 controller DTOs before using write requests.
+=======
+# enterprise-operations-management-system
+full stack project
+>>>>>>> a0aa0668813bd6871aaaf9f39fe3f4b8901bf2a4
