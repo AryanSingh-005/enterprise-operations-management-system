@@ -28,7 +28,7 @@ const Sidebar = ({ onClose }) => {
       name: "User Management",
       path: "/users",
       icon: "👥",
-      roles: ["SUPER_ADMIN", "ADMIN"],
+      roles: ["SUPER_ADMIN"],
     },
   ];
 

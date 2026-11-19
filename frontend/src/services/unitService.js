@@ -45,9 +45,11 @@ export const updateUnit = async (unitId, unitData) => {
 
 // Update unit status
 export const updateUnitStatus = async (unitId, status) => {
-  const response = await api.patch(`/admin/units/${unitId}/status`, {
-    status,
-  });
+  const response = await api.patch(
+    `/admin/units/${unitId}/status`,
+    null,
+    { params: { status } }
+  );
 
   return response.data;
 };

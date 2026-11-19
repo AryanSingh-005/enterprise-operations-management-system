@@ -3,6 +3,7 @@ package com.operations.enterprise_system.config;
 
 import com.operations.enterprise_system.security.JwtAuthenticationFilter;
 
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -35,53 +36,65 @@ public class SecurityConfig {
 
     public SecurityConfig(
             JwtAuthenticationFilter jwtAuthenticationFilter) {
-
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
 
-    // BCrypt password encoder
+    // Password encoder
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    // Authentication Manager
+    // Authentication manager
     @Bean
     public AuthenticationManager authenticationManager(
-            AuthenticationConfiguration configuration)
-            throws Exception {
-
+            AuthenticationConfiguration configuration) throws Exception {
         return configuration.getAuthenticationManager();
     }
 
-    // Main Security Configuration
+    /*
+     * IMPORTANT:
+     * Prevent Spring Boot from registering the JWT filter
+     * as a normal servlet filter.
+     *
+     * The filter will run only inside Spring Security's
+     * SecurityFilterChain.
+     */
+    @Bean
+    public FilterRegistrationBean<JwtAuthenticationFilter>
+    jwtFilterRegistration(JwtAuthenticationFilter filter) {
+
+        FilterRegistrationBean<JwtAuthenticationFilter> registration =
+                new FilterRegistrationBean<>();
+
+        registration.setFilter(filter);
+        registration.setEnabled(false);
+
+        return registration;
+    }
+
+    // Main security configuration
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http) throws Exception {
 
         http
-                // Disable CSRF for stateless JWT REST APIs
                 .csrf(csrf -> csrf.disable())
 
-                // Enable CORS
-                .cors(cors ->
-                        cors.configurationSource(corsConfigurationSource())
-                )
+                .cors(cors -> cors.configurationSource(
+                        corsConfigurationSource()
+                ))
 
-                // Stateless session management
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(
                                 SessionCreationPolicy.STATELESS
                         )
                 )
 
-                // Handle unauthorized and forbidden requests
                 .exceptionHandling(ex -> ex
 
-                        // 401 Unauthorized
                         .authenticationEntryPoint(
                                 (request, response, exception) -> {
-
                                     response.setStatus(
                                             HttpStatus.UNAUTHORIZED.value()
                                     );
@@ -99,10 +112,8 @@ public class SecurityConfig {
                                 }
                         )
 
-                        // 403 Forbidden
                         .accessDeniedHandler(
                                 (request, response, exception) -> {
-
                                     response.setStatus(
                                             HttpStatus.FORBIDDEN.value()
                                     );
@@ -121,38 +132,42 @@ public class SecurityConfig {
                         )
                 )
 
-                // Role-based authorization
                 .authorizeHttpRequests(auth -> auth
 
-                        // Allow CORS preflight requests
+                        // CORS preflight
                         .requestMatchers(
                                 HttpMethod.OPTIONS, "/**"
                         ).permitAll()
 
-                        // Public health endpoint
+                        // Public APIs
                         .requestMatchers(
                                 "/api/health"
                         ).permitAll()
 
-                        // Public login endpoint
                         .requestMatchers(
-                                "/api/auth/login"
+                                HttpMethod.POST, "/api/auth/login"
                         ).permitAll()
 
-                        // SUPER_ADMIN only
+                        // Super Admin
                         .requestMatchers(
                                 "/api/super-admin/**"
                         ).hasRole("SUPER_ADMIN")
 
-                        // SUPER_ADMIN and ADMIN
+                        // Employee can view admin and site-manager GET endpoints
+                        .requestMatchers(HttpMethod.GET, "/api/admin/**", "/api/site-manager/**")
+                        .hasAnyRole("SUPER_ADMIN", "ADMIN", "SITE_MANAGER", "EMPLOYEE")
+
+                        // Site Manager can manage units (admin unit endpoints)
+                        .requestMatchers(
+                                "/api/admin/units/**"
+                        ).hasAnyRole("SUPER_ADMIN", "ADMIN", "SITE_MANAGER")
+
+                        // Admin (mutating)
                         .requestMatchers(
                                 "/api/admin/**"
-                        ).hasAnyRole(
-                                "SUPER_ADMIN",
-                                "ADMIN"
-                        )
+                        ).hasAnyRole("SUPER_ADMIN", "ADMIN")
 
-                        // SUPER_ADMIN, ADMIN and SITE_MANAGER
+                        // Site Manager
                         .requestMatchers(
                                 "/api/site-manager/**"
                         ).hasAnyRole(
@@ -161,7 +176,7 @@ public class SecurityConfig {
                                 "SITE_MANAGER"
                         )
 
-                        // Employee endpoints
+                        // Employee
                         .requestMatchers(
                                 "/api/employee/**"
                         ).hasAnyRole(
@@ -171,16 +186,11 @@ public class SecurityConfig {
                                 "EMPLOYEE"
                         )
 
-                        // All remaining API endpoints require authentication
-                        .requestMatchers(
-                                "/api/**"
-                        ).authenticated()
-
-                        // Secure all remaining endpoints by default
+                        // All remaining APIs require authentication
                         .anyRequest().authenticated()
                 )
 
-                // Add JWT filter before username/password authentication
+                // Register JWT filter exactly once, inside Spring Security
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
@@ -189,19 +199,16 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // CORS Configuration
+    // CORS configuration
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
 
-        CorsConfiguration configuration =
-                new CorsConfiguration();
+        CorsConfiguration configuration = new CorsConfiguration();
 
-        // React frontend origin
         configuration.setAllowedOrigins(
                 List.of("http://localhost:5173")
         );
 
-        // Allowed HTTP methods
         configuration.setAllowedMethods(
                 List.of(
                         "GET",
@@ -213,7 +220,6 @@ public class SecurityConfig {
                 )
         );
 
-        // Allowed request headers
         configuration.setAllowedHeaders(
                 List.of(
                         "Authorization",
@@ -222,16 +228,12 @@ public class SecurityConfig {
         );
 
         configuration.setAllowCredentials(true);
-
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source =
                 new UrlBasedCorsConfigurationSource();
 
-        source.registerCorsConfiguration(
-                "/**",
-                configuration
-        );
+        source.registerCorsConfiguration("/**", configuration);
 
         return source;
     }

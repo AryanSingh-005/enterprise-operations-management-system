@@ -4,7 +4,7 @@ import {
   login as loginService,
   logout as logoutService,
   getCurrentUser,
-} from "../services/authservice";
+} from "../services/authService";
 
 const AuthContext = createContext(null);
 
@@ -22,6 +22,10 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const handleUnauthorized = () => setUser(null);
+
+    window.addEventListener("auth:unauthorized", handleUnauthorized);
+
     const verifyUser = async () => {
       const token = localStorage.getItem("token");
 
@@ -33,7 +37,7 @@ export const AuthProvider = ({ children }) => {
       try {
         const currentUser = await getCurrentUser();
         setUser(currentUser);
-      } catch (error) {
+      } catch {
         logoutService();
         setUser(null);
       } finally {
@@ -42,6 +46,10 @@ export const AuthProvider = ({ children }) => {
     };
 
     verifyUser();
+
+    return () => {
+      window.removeEventListener("auth:unauthorized", handleUnauthorized);
+    };
   }, []);
 
   const login = async (credentials) => {

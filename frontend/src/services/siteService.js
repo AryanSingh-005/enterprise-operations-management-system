@@ -27,9 +27,11 @@ export const updateSite = async (siteId, siteData) => {
 
 // Update site status
 export const updateSiteStatus = async (siteId, status) => {
-  const response = await api.patch(`/admin/sites/${siteId}/status`, {
-    status,
-  });
+  const response = await api.patch(
+    `/admin/sites/${siteId}/status`,
+    null,
+    { params: { status } }
+  );
 
   return response.data;
 };
@@ -43,7 +45,7 @@ export const deleteSite = async (siteId) => {
 // Search sites
 export const searchSites = async (keyword) => {
   const response = await api.get("/admin/sites/search", {
-    params: { keyword },
+    params: { name: keyword },
   });
 
   return response.data;

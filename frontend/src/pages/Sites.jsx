@@ -70,7 +70,7 @@ const Sites = () => {
       siteName: site.siteName || "",
       siteCode: site.siteCode || "",
       location: site.location || "",
-      managerId: String(site.siteManagerId || ""),
+      managerId: String(site.siteManagerId ?? ""),
       status: site.status || "ACTIVE",
     });
 
@@ -88,8 +88,11 @@ const Sites = () => {
       setSuccess("");
 
       const payload = {
-        ...formData,
-        managerId: Number(formData.managerId),
+        siteName: formData.siteName,
+        siteCode: formData.siteCode,
+        location: formData.location,
+        siteManagerId: Number(formData.managerId),
+        status: formData.status,
       };
 
       if (editingId) {
