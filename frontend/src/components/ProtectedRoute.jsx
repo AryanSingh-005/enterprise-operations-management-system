@@ -1,3 +1,4 @@
+// Renders the interface and behavior for this application module.
 
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";

@@ -1,3 +1,4 @@
+// Renders the interface and behavior for this application module.
 
 const ErrorMessage = ({
   message = "Something went wrong. Please try again.",

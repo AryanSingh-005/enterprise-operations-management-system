@@ -1,3 +1,4 @@
+// Renders the interface and behavior for this application module.
 
 import { createContext, useContext, useEffect, useState } from "react";
 import {

@@ -1,3 +1,4 @@
+// Renders the interface and behavior for this application module.
 
 import { useState } from "react";
 import { createUser } from "../services/userService";

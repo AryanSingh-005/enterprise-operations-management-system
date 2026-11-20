@@ -1,3 +1,4 @@
+// Provides the application functionality defined in this module.
 
 import api from "./api";
 

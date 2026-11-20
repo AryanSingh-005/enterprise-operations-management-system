@@ -1,3 +1,4 @@
+// Renders the interface and behavior for this application module.
 
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";

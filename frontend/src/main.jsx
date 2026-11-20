@@ -1,3 +1,4 @@
+// Renders the interface and behavior for this application module.
 
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";

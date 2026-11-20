@@ -1,3 +1,4 @@
+// Renders the interface and behavior for this application module.
 
 const LoadingSpinner = ({ message = "Loading...", fullScreen = false }) => {
   return (

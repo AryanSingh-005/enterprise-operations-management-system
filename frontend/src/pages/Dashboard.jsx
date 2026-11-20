@@ -1,3 +1,4 @@
+// Renders the interface and behavior for this application module.
 
 import { useEffect, useState } from "react";
 import api from "../services/api";

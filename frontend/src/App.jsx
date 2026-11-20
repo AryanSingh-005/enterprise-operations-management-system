@@ -1,3 +1,4 @@
+// Renders the interface and behavior for this application module.
 
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 

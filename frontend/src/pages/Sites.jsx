@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   getAllSites,
   createSite,
@@ -8,6 +8,7 @@ import {
   updateSiteStatus,
 } from "../services/siteService";
 
+// Initial values for the create/edit site form
 const initialForm = {
   siteName: "",
   siteCode: "",
@@ -26,6 +27,35 @@ const Sites = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
+  // Search text can match ID, name, code, location, manager, email or status.
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Separate dropdown filter for site status.
+  const [statusFilter, setStatusFilter] = useState("ALL");
+
+  // Format the site creation date into a readable Indian date and time.
+  const formatCreatedDate = (date) => {
+    // Return N/A if the date is missing.
+    if (!date) return "N/A";
+
+    const parsedDate = new Date(date);
+
+    // Handle invalid date values safely.
+    if (Number.isNaN(parsedDate.getTime())) {
+      return "N/A";
+    }
+
+    return parsedDate.toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
+  // Fetch all sites from the backend.
   const fetchSites = async () => {
     try {
       setLoading(true);
@@ -42,10 +72,44 @@ const Sites = () => {
     }
   };
 
+  // Fetch sites when the component first loads.
   useEffect(() => {
     fetchSites();
   }, []);
 
+  // Apply search and status filters whenever their values change.
+  // useMemo avoids unnecessary recalculation of the filtered list.
+  const filteredSites = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase();
+
+    return sites.filter((site) => {
+      // Search across multiple site fields.
+      const matchesSearch =
+        !keyword ||
+        String(site.id ?? "").toLowerCase().includes(keyword) ||
+        (site.siteName || "").toLowerCase().includes(keyword) ||
+        (site.siteCode || "").toLowerCase().includes(keyword) ||
+        (site.location || "").toLowerCase().includes(keyword) ||
+        (site.siteManagerName || "").toLowerCase().includes(keyword) ||
+        (site.siteManagerEmail || "").toLowerCase().includes(keyword) ||
+        (site.status || "").toLowerCase().includes(keyword);
+
+      // Apply the selected status filter.
+      const matchesStatus =
+        statusFilter === "ALL" || site.status === statusFilter;
+
+      // A site must match both search and status conditions.
+      return matchesSearch && matchesStatus;
+    });
+  }, [sites, searchTerm, statusFilter]);
+
+  // Reset both search text and status filter.
+  const handleResetFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("ALL");
+  };
+
+  // Handle form input changes.
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -55,6 +119,7 @@ const Sites = () => {
     }));
   };
 
+  // Open the form to create a new site.
   const openCreateForm = () => {
     setEditingId(null);
     setFormData(initialForm);
@@ -63,6 +128,7 @@ const Sites = () => {
     setShowForm(true);
   };
 
+  // Populate the form with existing site details for editing.
   const handleEdit = (site) => {
     setEditingId(site.id);
 
@@ -79,6 +145,7 @@ const Sites = () => {
     setShowForm(true);
   };
 
+  // Create or update a site.
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -107,6 +174,7 @@ const Sites = () => {
       setEditingId(null);
       setFormData(initialForm);
 
+      // Refresh the site list after a successful operation.
       await fetchSites();
     } catch (err) {
       setError(
@@ -119,6 +187,7 @@ const Sites = () => {
     }
   };
 
+  // Delete a site after user confirmation.
   const handleDelete = async (siteId) => {
     const confirmed = window.confirm(
       "Are you sure you want to delete this site?"
@@ -143,6 +212,7 @@ const Sites = () => {
     }
   };
 
+  // Toggle a site's status between ACTIVE and INACTIVE.
   const handleStatusChange = async (site) => {
     const newStatus =
       site.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
@@ -166,7 +236,7 @@ const Sites = () => {
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-8">
 
-      {/* Header */}
+      {/* ================= HEADER ================= */}
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">
@@ -185,9 +255,12 @@ const Sites = () => {
         </button>
       </div>
 
-      {/* Notifications */}
+      {/* ================= NOTIFICATIONS ================= */}
       {error && (
-        <div role="alert" className="mb-5 rounded-lg bg-red-50 p-4 text-sm text-red-700">
+        <div
+          role="alert"
+          className="mb-5 rounded-lg bg-red-50 p-4 text-sm text-red-700"
+        >
           {error}
         </div>
       )}
@@ -198,7 +271,7 @@ const Sites = () => {
         </div>
       )}
 
-      {/* Create / Edit Form */}
+      {/* ================= CREATE / EDIT FORM ================= */}
       {showForm && (
         <div className="mb-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="mb-6 text-xl font-bold text-slate-900">
@@ -320,12 +393,85 @@ const Sites = () => {
         </div>
       )}
 
-      {/* Sites Table */}
+      {/* ================= SEARCH AND FILTER SECTION ================= */}
+      <div className="mb-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold text-slate-800">
+            Search & Filter Sites
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Search by site ID, name, code, location or manager details.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+
+          {/* Search input: supports multiple site fields */}
+          <div className="md:col-span-2">
+            <label className="mb-2 block text-sm font-medium text-slate-700">
+              Search Sites
+            </label>
+
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by ID, name, code, location, manager..."
+              className="w-full rounded-lg border border-slate-300 p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            />
+          </div>
+
+          {/* Status dropdown: filters ACTIVE and INACTIVE sites */}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">
+              Filter by Status
+            </label>
+
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 p-3 outline-none focus:border-blue-500"
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Reset filters and display matching result count */}
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+
+          <p className="text-sm text-slate-600">
+            Showing{" "}
+            <span className="font-semibold text-slate-900">
+              {filteredSites.length}
+            </span>{" "}
+            of{" "}
+            <span className="font-semibold text-slate-900">
+              {sites.length}
+            </span>{" "}
+            sites
+          </p>
+
+          <button
+            type="button"
+            onClick={handleResetFilters}
+            disabled={!searchTerm && statusFilter === "ALL"}
+            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Reset Filters
+          </button>
+        </div>
+      </div>
+
+      {/* ================= SITES TABLE ================= */}
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
 
         <div className="border-b p-5">
           <h2 className="font-semibold text-slate-800">
-            All Sites ({sites.length})
+            All Sites ({filteredSites.length})
           </h2>
         </div>
 
@@ -337,37 +483,54 @@ const Sites = () => {
           <div className="p-10 text-center text-slate-500">
             No sites found. Create your first site.
           </div>
+        ) : filteredSites.length === 0 ? (
+          // Show a different message when sites exist but no filters match.
+          <div className="p-10 text-center text-slate-500">
+            No matching sites found. Try changing your search or filters.
+          </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[850px] text-left text-sm">
+            <table className="w-full min-w-[1100px] text-left text-sm">
 
+              {/* Table column headings */}
               <thead className="bg-slate-50 text-slate-600">
                 <tr>
+                  <th className="px-5 py-4">Site ID</th>
                   <th className="px-5 py-4">Site</th>
                   <th className="px-5 py-4">Code</th>
                   <th className="px-5 py-4">Location</th>
                   <th className="px-5 py-4">Manager</th>
+                  <th className="px-5 py-4">Created Date</th>
                   <th className="px-5 py-4">Status</th>
                   <th className="px-5 py-4">Actions</th>
                 </tr>
               </thead>
 
               <tbody className="divide-y divide-slate-100">
-                {sites.map((site) => (
+                {filteredSites.map((site) => (
                   <tr key={site.id} className="hover:bg-slate-50">
 
+                    {/* Display site ID */}
+                    <td className="px-5 py-4 font-medium text-slate-700">
+                      #{site.id}
+                    </td>
+
+                    {/* Display site name */}
                     <td className="px-5 py-4 font-medium text-slate-900">
                       {site.siteName}
                     </td>
 
+                    {/* Display site code */}
                     <td className="px-5 py-4 text-slate-600">
                       {site.siteCode}
                     </td>
 
+                    {/* Display site location */}
                     <td className="px-5 py-4 text-slate-600">
                       {site.location}
                     </td>
 
+                    {/* Display site manager details */}
                     <td className="px-5 py-4">
                       <p className="font-medium text-slate-800">
                         {site.siteManagerName || "N/A"}
@@ -377,18 +540,28 @@ const Sites = () => {
                       </p>
                     </td>
 
+                    {/* Display formatted site creation date */}
+                    <td className="px-5 py-4 whitespace-nowrap text-slate-600">
+                      {formatCreatedDate(site.createdAt)}
+                    </td>
+
+                    {/* Display site status */}
                     <td className="px-5 py-4">
-                      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                        site.status === "ACTIVE"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-red-100 text-red-700"
-                      }`}>
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                          site.status === "ACTIVE"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-red-100 text-red-700"
+                        }`}
+                      >
                         {site.status}
                       </span>
                     </td>
 
+                    {/* Site action buttons */}
                     <td className="px-5 py-4">
                       <div className="flex flex-wrap gap-2">
+
                         <button
                           onClick={() => handleEdit(site)}
                           className="rounded-md bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100"
@@ -409,6 +582,7 @@ const Sites = () => {
                         >
                           Delete
                         </button>
+
                       </div>
                     </td>
 
